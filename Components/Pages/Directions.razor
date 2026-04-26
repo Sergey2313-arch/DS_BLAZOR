@@ -1,0 +1,41 @@
+﻿@page "/directions"
+@using BlazorAcademyTop.Data
+@using BlazorAcademyTop.Models
+@using Microsoft.EntityFrameworkCore
+@inject AcademyContext Db
+
+<h1>Directions</h1>
+
+@if (items == null)
+{
+    <p>Загрузка...</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Direction name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in items)
+            {
+                <tr>
+                    <td>@d.DirectionId</td>
+                    <td>@d.DirectionName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Direction>? items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        items = await Db.Directions.AsNoTracking().ToListAsync();
+    }
+}

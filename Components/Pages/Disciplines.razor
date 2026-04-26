@@ -1,0 +1,88 @@
+@page "/disciplines"
+@page "/disciplines/{DisciplineId:int}"
+@using BlazorAcademyTop.Data
+@using BlazorAcademyTop.Models
+@using Microsoft.EntityFrameworkCore
+@inject AcademyContext Db
+
+<h1>Disciplines</h1>
+
+@if (DisciplineId.HasValue)
+{
+    if (selectedDiscipline == null)
+    {
+        <p>Дисциплина не найдена.</p>
+    }
+    else
+    {
+        <div class="card p-3 mb-3">
+            <h4>@selectedDiscipline.DisciplineName</h4>
+            <p><b>Количество занятий:</b> @selectedDiscipline.NumberOfLessons</p>
+            <h5>Преподаватели, которые могут вести дисциплину:</h5>
+            @if (selectedDiscipline.TeacherDisciplineRelations.Count == 0)
+            {
+                <p>Преподаватели не назначены.</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var item in selectedDiscipline.TeacherDisciplineRelations)
+                    {
+                        <li>@item.Teacher?.FullName</li>
+                    }
+                </ul>
+            }
+            <a class="btn btn-secondary" href="/disciplines">Назад</a>
+        </div>
+    }
+}
+else if (items == null)
+{
+    <p>Загрузка...</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Discipline name</th>
+                <th>Number of lessons</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in items)
+            {
+                <tr>
+                    <td>@d.DisciplineId</td>
+                    <td>@d.DisciplineName</td>
+                    <td>@d.NumberOfLessons</td>
+                    <td><a class="btn btn-sm btn-outline-primary" href="/disciplines/@d.DisciplineId">Details</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public int? DisciplineId { get; set; }
+    private List<Discipline>? items;
+    private Discipline? selectedDiscipline;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (DisciplineId.HasValue)
+        {
+            selectedDiscipline = await Db.Disciplines
+                .Include(d => d.TeacherDisciplineRelations)
+                .ThenInclude(r => r.Teacher)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.DisciplineId == DisciplineId.Value);
+        }
+        else
+        {
+            items = await Db.Disciplines.AsNoTracking().OrderBy(d => d.DisciplineName).ToListAsync();
+        }
+    }
+}

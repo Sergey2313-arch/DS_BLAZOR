@@ -1,0 +1,106 @@
+@page "/teachers"
+@page "/teachers/{TeacherId:int}"
+@using BlazorAcademyTop.Data
+@using BlazorAcademyTop.Models
+@using Microsoft.EntityFrameworkCore
+@inject AcademyContext Db
+
+<h1>Teachers</h1>
+
+@if (TeacherId.HasValue)
+{
+    if (selectedTeacher == null)
+    {
+        <p>Преподаватель не найден.</p>
+    }
+    else
+    {
+        <div class="card p-3 mb-3">
+            <h4>@selectedTeacher.FullName</h4>
+            <p><b>Email:</b> @selectedTeacher.Email</p>
+            <p><b>Телефон:</b> @selectedTeacher.Phone</p>
+            <p><b>Работает с:</b> @selectedTeacher.WorkSince.ToShortDateString()</p>
+            <p><b>Ставка:</b> @selectedTeacher.Rate</p>
+
+            <h5>Дисциплины, которые может вести преподаватель:</h5>
+            @if (selectedTeacher.TeacherDisciplineRelations.Count == 0)
+            {
+                <p>Дисциплины не назначены.</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var item in selectedTeacher.TeacherDisciplineRelations)
+                    {
+                        <li>@item.Discipline?.DisciplineName</li>
+                    }
+                </ul>
+            }
+            <a class="btn btn-secondary" href="/teachers">Назад</a>
+        </div>
+    }
+}
+else if (items == null)
+{
+    <p>Загрузка...</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Last name</th>
+                <th>First name</th>
+                <th>Middle name</th>
+                <th>Birth date</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Photo</th>
+                <th>Work since</th>
+                <th>Rate</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in items)
+            {
+                <tr>
+                    <td>@t.TeacherId</td>
+                    <td>@t.LastName</td>
+                    <td>@t.FirstName</td>
+                    <td>@t.MiddleName</td>
+                    <td>@t.BirthDate.ToShortDateString()</td>
+                    <td>@t.Email</td>
+                    <td>@t.Phone</td>
+                    <td>@(t.Photo != null ? "Есть фото" : "Нет фото")</td>
+                    <td>@t.WorkSince.ToShortDateString()</td>
+                    <td>@t.Rate</td>
+                    <td><a class="btn btn-sm btn-outline-primary" href="/teachers/@t.TeacherId">Details</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public int? TeacherId { get; set; }
+    private List<Teacher>? items;
+    private Teacher? selectedTeacher;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (TeacherId.HasValue)
+        {
+            selectedTeacher = await Db.Teachers
+                .Include(t => t.TeacherDisciplineRelations)
+                .ThenInclude(r => r.Discipline)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TeacherId == TeacherId.Value);
+        }
+        else
+        {
+            items = await Db.Teachers.AsNoTracking().OrderBy(t => t.LastName).ThenBy(t => t.FirstName).ToListAsync();
+        }
+    }
+}

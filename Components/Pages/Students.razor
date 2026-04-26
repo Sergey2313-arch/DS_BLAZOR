@@ -1,0 +1,122 @@
+@page "/students"
+@rendermode InteractiveServer
+@using BlazorAcademyTop.Data
+@using BlazorAcademyTop.Models
+@using Microsoft.EntityFrameworkCore
+@inject AcademyContext Db
+
+<h1>Students</h1>
+
+<div class="card p-3 mb-3">
+    <div class="row g-2">
+        <div class="col-md-6">
+            <label class="form-label">Фильтр по направлению</label>
+            <select class="form-select" @bind="selectedDirectionId" @bind:after="OnDirectionChanged">
+                <option value="">Все направления</option>
+                @foreach (var d in directions)
+                {
+                    <option value="@d.DirectionId">@d.DirectionName</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Фильтр по группе</label>
+            <select class="form-select" @bind="selectedGroupId" @bind:after="LoadStudents">
+                <option value="">Все группы</option>
+                @foreach (var g in filteredGroups)
+                {
+                    <option value="@g.GroupId">@g.GroupName</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>
+
+@if (items == null)
+{
+    <p>Загрузка...</p>
+}
+else
+{
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Фамилия</th>
+                <th>Имя</th>
+                <th>Отчество</th>
+                <th>Дата рождения</th>
+                <th>Email</th>
+                <th>Телефон</th>
+                <th>Фото</th>
+                <th>Группа</th>
+                <th>Направление</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in items)
+            {
+                <tr>
+                    <td>@s.StudId</td>
+                    <td>@s.LastName</td>
+                    <td>@s.FirstName</td>
+                    <td>@s.MiddleName</td>
+                    <td>@s.BirthDate.ToShortDateString()</td>
+                    <td>@s.Email</td>
+                    <td>@s.Phone</td>
+                    <td>@(s.Photo != null ? "Есть фото" : "Нет фото")</td>
+                    <td>@s.Group?.GroupName</td>
+                    <td>@s.Group?.Direction?.DirectionName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Student>? items;
+    private List<Direction> directions = new();
+    private List<Group> groups = new();
+    private List<Group> filteredGroups = new();
+    private byte? selectedDirectionId;
+    private int? selectedGroupId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        directions = await Db.Directions.AsNoTracking().OrderBy(d => d.DirectionName).ToListAsync();
+        groups = await Db.Groups.Include(g => g.Direction).AsNoTracking().OrderBy(g => g.GroupName).ToListAsync();
+        filteredGroups = groups;
+        await LoadStudents();
+    }
+
+    private async Task OnDirectionChanged()
+    {
+        selectedGroupId = null;
+        filteredGroups = selectedDirectionId.HasValue
+            ? groups.Where(g => g.DirectionId == selectedDirectionId.Value).ToList()
+            : groups;
+
+        await LoadStudents();
+    }
+
+    private async Task LoadStudents()
+    {
+        var query = Db.Students
+            .Include(s => s.Group)!
+            .ThenInclude(g => g.Direction)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (selectedDirectionId.HasValue)
+        {
+            query = query.Where(s => s.Group != null && s.Group.DirectionId == selectedDirectionId.Value);
+        }
+
+        if (selectedGroupId.HasValue)
+        {
+            query = query.Where(s => s.GroupId == selectedGroupId.Value);
+        }
+
+        items = await query.OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToListAsync();
+    }
+}
