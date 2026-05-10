@@ -19,12 +19,7 @@ namespace BlazorAcademyTop.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Student>().ToTable("Students");
-            modelBuilder.Entity<Group>().ToTable("Groups");
-            modelBuilder.Entity<Direction>().ToTable("Directions");
-            modelBuilder.Entity<Discipline>().ToTable("Disciplines");
-            modelBuilder.Entity<Teacher>().ToTable("Teachers");
-
+            // Связи для Студентов и Групп
             modelBuilder.Entity<Group>()
                 .HasOne(g => g.Direction)
                 .WithMany(d => d.Groups)
@@ -35,6 +30,7 @@ namespace BlazorAcademyTop.Data
                 .WithMany(g => g.Students)
                 .HasForeignKey(s => s.GroupId);
 
+            // Ключи и связи для Преподавателей и Дисциплин
             modelBuilder.Entity<TeacherDisciplineRelation>()
                 .HasKey(x => new { x.TeacherId, x.DisciplineId });
 
@@ -48,6 +44,7 @@ namespace BlazorAcademyTop.Data
                 .WithMany(d => d.TeacherDisciplineRelations)
                 .HasForeignKey(x => x.DisciplineId);
 
+            // Ключи и связи для Дисциплин и Направлений
             modelBuilder.Entity<DisciplineDirectionRelation>()
                 .HasKey(x => new { x.DirectionId, x.DisciplineId });
 

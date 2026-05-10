@@ -1,0 +1,97 @@
+﻿@page "/students/edit/{Id:int?}"
+@rendermode InteractiveServer
+@using BlazorAcademyTop.Models
+@using BlazorAcademyTop.Data
+@using Microsoft.EntityFrameworkCore
+@inject AcademyContext Context
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">@(Id == null ? "Добавление" : "Редактирование") студента</h3>
+        </div>
+        <div class="card-body">
+            @if (student == null)
+            {
+                <p>Загрузка...</p>
+            }
+            else
+            {
+                <EditForm Model="student" OnValidSubmit="HandleSave" FormName="StudentEditForm">
+                    <DataAnnotationsValidator />
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label>Фамилия</label>
+                            <InputText @bind-Value="student.LastName" class="form-control mb-2" />
+                            
+                            <label>Имя</label>
+                            <InputText @bind-Value="student.FirstName" class="form-control mb-2" />
+
+                            <label>Отчество</label>
+                            <InputText @bind-Value="student.MiddleName" class="form-control mb-2" />
+
+                            <label>Дата рождения</label>
+                            <InputDate @bind-Value="student.BirthDate" class="form-control mb-2" />
+
+                            <label>Группа</label>
+                            <InputSelect @bind-Value="student.GroupId" class="form-select mb-3">
+                                <option value="">-- Нет группы --</option>
+                                @if (groups != null)
+                                {
+                                    @foreach (var g in groups)
+                                    {
+                                        <option value="@g.GroupId">@g.GroupName</option>
+                                    }
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="border p-2 mb-2 bg-light d-flex align-items-center justify-content-center" style="height:200px">
+                                @if (student.Photo != null && student.Photo.Length > 0)
+                                {
+                                    <img src="data:image/jpeg;base64,@Convert.ToBase64String(student.Photo)" style="max-height:100%" />
+                                }
+                                else
+                                {
+                                    <span>Нет фото</span>
+                                }
+                            </div>
+                            <InputFile OnChange="HandleFile" class="form-control" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success mt-3">Сохранить</button>
+                    <a href="/students" class="btn btn-secondary mt-3 ms-2">Назад</a>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+    private Student? student;
+    private List<Group>? groups;
+
+    protected override async Task OnInitializedAsync()
+    {
+        groups = await Context.Groups.ToListAsync();
+        student = Id.HasValue ? await Context.Students.FindAsync(Id.Value) : new Student { BirthDate = DateTime.Today.AddYears(-18) };
+    }
+
+    private async Task HandleFile(InputFileChangeEventArgs e)
+    {
+        var resized = await e.File.RequestImageFileAsync("image/jpeg", 400, 400);
+        var buffer = new byte[resized.Size];
+        await resized.OpenReadStream().ReadAsync(buffer);
+        student!.Photo = buffer;
+    }
+
+    private async Task HandleSave()
+    {
+        if (Id == null) Context.Students.Add(student!);
+        else Context.Students.Update(student!);
+        await Context.SaveChangesAsync();
+        Navigation.NavigateTo("/students");
+    }
+}

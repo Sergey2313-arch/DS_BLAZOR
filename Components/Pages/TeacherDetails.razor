@@ -1,0 +1,108 @@
+﻿@page "/teachers/details/{Id:int}"
+@using BlazorAcademyTop.Models
+@using BlazorAcademyTop.Data
+@using Microsoft.EntityFrameworkCore
+@inject AcademyContext Context
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Карточка преподавателя</h3>
+            <button class="btn btn-light btn-sm" @onclick="GoBack">Назад к списку</button>
+        </div>
+        <div class="card-body">
+            @if (teacher == null)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status"></div>
+                    <p>Загрузка данных...</p>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    <div class="col-md-4 text-center border-end">
+                        @if (teacher.Photo != null && teacher.Photo.Length > 0)
+                        {
+                            <img src="data:image/jpeg;base64,@Convert.ToBase64String(teacher.Photo)"
+                                 class="img-fluid rounded shadow-sm"
+                                 style="max-height: 300px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="bg-light border rounded d-flex align-items-center justify-content-center"
+                                 style="height: 300px; width: 100%;">
+                                <span class="text-muted">Фото отсутствует</span>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="col-md-8 ps-4">
+                        <h2 class="text-success">@teacher.FullName</h2>
+                        <p class="text-muted">Преподаватель академии</p>
+                        <hr />
+                        
+                        <div class="row mb-2">
+                            <div class="col-sm-4 fw-bold">Возраст:</div>
+                            <div class="col-sm-8">@teacher.AgeString</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4 fw-bold">Работает с:</div>
+                            <div class="col-sm-8">@(teacher.WorkSince.HasValue ? teacher.WorkSince.Value.ToShortDateString() : "Не указано")</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4 fw-bold">Email:</div>
+                            <div class="col-sm-8"><a href="mailto:@teacher.Email">@teacher.Email</a></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4 fw-bold">Телефон:</div>
+                            <div class="col-sm-8">@teacher.Phone</div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h5><i class="bi bi-book"></i> Преподаваемые дисциплины:</h5>
+                            @if (teacher.TeacherDisciplineRelations != null && teacher.TeacherDisciplineRelations.Any())
+                            {
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var rel in teacher.TeacherDisciplineRelations)
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            @rel.Discipline?.DisciplineName
+                                            <span class="badge bg-success rounded-pill">Активен</span>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <p class="text-muted fst-italic">Дисциплины еще не назначены</p>
+                            }
+                        </div>
+
+                        <div class="mt-4">
+                            <a href="/teachers/edit/@teacher.TeacherId" class="btn btn-warning">
+                                Редактировать профиль
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Teacher? teacher;
+
+    protected override async Task OnInitializedAsync()
+    {
+        teacher = await Context.Teachers
+            .Include(t => t.TeacherDisciplineRelations)
+                .ThenInclude(r => r.Discipline)
+            .FirstOrDefaultAsync(t => t.TeacherId == Id);
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/teachers");
+}

@@ -1,0 +1,122 @@
+﻿@page "/teachers/edit/{Id:int?}"
+@rendermode InteractiveServer
+@using BlazorAcademyTop.Models
+@using BlazorAcademyTop.Data
+@using Microsoft.EntityFrameworkCore
+@inject AcademyContext Context
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">@(Id == null ? "Добавление" : "Редактирование") преподавателя</h3>
+        </div>
+        <div class="card-body">
+            @if (teacher == null)
+            {
+                <div class="text-center"><div class="spinner-border"></div><p>Загрузка...</p></div>
+            }
+            else
+            {
+                <EditForm Model="teacher" OnValidSubmit="HandleSave" FormName="TeacherEditForm">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                <label class="fw-bold">Фамилия</label>
+                                <InputText @bind-Value="teacher.LastName" class="form-control" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="fw-bold">Имя</label>
+                                <InputText @bind-Value="teacher.FirstName" class="form-control" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="fw-bold">Отчество</label>
+                                <InputText @bind-Value="teacher.MiddleName" class="form-control" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="fw-bold">Дата рождения</label>
+                                <InputDate @bind-Value="teacher.BirthDate" class="form-control" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="fw-bold">Работает с</label>
+                                <InputDate @bind-Value="teacher.WorkSince" class="form-control" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="fw-bold">Ставка (Rate)</label>
+                                <InputNumber @bind-Value="teacher.Rate" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 text-center">
+                            <div class="border p-2 mb-2 bg-light d-flex align-items-center justify-content-center" style="height:250px">
+                                @if (teacher.Photo != null && teacher.Photo.Length > 0)
+                                {
+                                    <img src="data:image/jpeg;base64,@Convert.ToBase64String(teacher.Photo)" style="max-height:100%; max-width:100%" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Нет фото</span>
+                                }
+                            </div>
+                            <label class="btn btn-outline-primary btn-sm w-100">
+                                Изменить фото
+                                <InputFile OnChange="HandleFile" class="d-none" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success">Сохранить</button>
+                        <a href="/teachers" class="btn btn-secondary ms-2">Отмена</a>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+    private Teacher? teacher;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            teacher = await Context.Teachers.FindAsync((short)Id.Value);
+        }
+        else
+        {
+            teacher = new Teacher { BirthDate = DateTime.Today.AddYears(-30), WorkSince = DateTime.Today };
+        }
+    }
+
+    private async Task HandleFile(InputFileChangeEventArgs e)
+    {
+        var resized = await e.File.RequestImageFileAsync("image/jpeg", 400, 400);
+        var buffer = new byte[resized.Size];
+        using (var stream = resized.OpenReadStream())
+        {
+            await stream.ReadAsync(buffer);
+        }
+        teacher!.Photo = buffer;
+    }
+
+    private async Task HandleSave()
+    {
+        if (Id == null)
+        {
+            Context.Teachers.Add(teacher!);
+        }
+        else
+        {
+            Context.Teachers.Update(teacher!);
+        }
+
+        await Context.SaveChangesAsync();
+        Navigation.NavigateTo("/teachers");
+    }
+}

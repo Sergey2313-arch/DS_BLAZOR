@@ -1,0 +1,69 @@
+﻿@page "/groups/edit/{Id:int?}"
+@rendermode InteractiveServer
+@using BlazorAcademyTop.Models
+@using BlazorAcademyTop.Data
+@using Microsoft.EntityFrameworkCore
+@inject AcademyContext Context
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">@(Id == null ? "Добавление группы" : "Редактирование группы")</h3>
+        </div>
+        <div class="card-body">
+            @if (group == null)
+            {
+                <p>Загрузка...</p>
+            }
+            else
+            {
+                <EditForm Model="group" OnValidSubmit="HandleSave" FormName="GroupEditForm">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Название группы</label>
+                        <InputText @bind-Value="group.GroupName" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Направление</label>
+                        <InputSelect @bind-Value="group.DirectionId" class="form-select">
+                            <option value="">-- Выберите направление --</option>
+                            @if (directions != null) {
+                                @foreach (var d in directions) {
+                                    <option value="@d.DirectionId">@d.DirectionName</option>
+                                }
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success">Сохранить</button>
+                        <a href="/groups" class="btn btn-secondary ms-2">Отмена</a>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+    private Group? group;
+    private List<Direction>? directions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        directions = await Context.Directions.ToListAsync();
+        group = Id.HasValue ? await Context.Groups.FindAsync(Id.Value) : new Group();
+    }
+
+    private async Task HandleSave()
+    {
+        if (Id.HasValue) Context.Groups.Update(group!);
+        else Context.Groups.Add(group!);
+
+        await Context.SaveChangesAsync();
+        Navigation.NavigateTo("/groups");
+    }
+}

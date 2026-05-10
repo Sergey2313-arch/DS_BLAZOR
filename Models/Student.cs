@@ -1,9 +1,11 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BlazorAcademyTop.Models
 {
-    public class Student
+    [Table("Students")]
+    public partial class Student
     {
         [Key]
         [Column("stud_id")]
@@ -30,9 +32,26 @@ namespace BlazorAcademyTop.Models
         [Column("photo")]
         public byte[]? Photo { get; set; }
 
-        [Column("group")]
+        [Column("group")] // <-- ВОТ ТУТ ТОЖЕ ИМЯ КОЛОНКИ БЕЗ _id
         public int? GroupId { get; set; }
 
-        public Group? Group { get; set; }
+        [ForeignKey("GroupId")]
+        public virtual Group? Group { get; set; }
+
+        [NotMapped]
+        public string AgeString
+        {
+            get
+            {
+                var age = DateTime.Today.Year - BirthDate.Year;
+                if (BirthDate.Date > DateTime.Today.AddYears(-age)) age--;
+                int lastDigit = age % 10;
+                int lastTwoDigits = age % 100;
+                if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return $"{age} лет";
+                if (lastDigit == 1) return $"{age} год";
+                if (lastDigit >= 2 && lastDigit <= 4) return $"{age} года";
+                return $"{age} лет";
+            }
+        }
     }
 }

@@ -3,15 +3,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace BlazorAcademyTop.Models
 {
     [Table("TeachersDisciplinesRelation")]
-    public class TeacherDisciplineRelation
+    public partial class TeacherDisciplineRelation
     {
-        [Column("teacher")]
+        [Column("teacher")] 
         public short TeacherId { get; set; }
 
-        [Column("discipline")]
+        [Column("discipline")] 
         public short DisciplineId { get; set; }
 
-        public Teacher? Teacher { get; set; }
-        public Discipline? Discipline { get; set; }
+        public virtual Discipline? Discipline { get; set; }
+        public virtual Teacher? Teacher { get; set; }
     }
 }

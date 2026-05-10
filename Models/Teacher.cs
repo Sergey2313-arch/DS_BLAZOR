@@ -1,9 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BlazorAcademyTop.Models
 {
-    public class Teacher
+    [Table("Teachers")]
+    public partial class Teacher
     {
         [Key]
         [Column("teacher_id")]
@@ -31,14 +34,25 @@ namespace BlazorAcademyTop.Models
         public byte[]? Photo { get; set; }
 
         [Column("work_since")]
-        public DateTime WorkSince { get; set; }
+        public DateTime? WorkSince { get; set; }
 
         [Column("rate", TypeName = "smallmoney")]
-        public decimal Rate { get; set; }
+        public decimal? Rate { get; set; }
 
-        public List<TeacherDisciplineRelation> TeacherDisciplineRelations { get; set; } = new();
+        public virtual ICollection<TeacherDisciplineRelation> TeacherDisciplineRelations { get; set; } = new List<TeacherDisciplineRelation>();
 
         [NotMapped]
         public string FullName => $"{LastName} {FirstName} {MiddleName}".Trim();
+
+        [NotMapped]
+        public string AgeString
+        {
+            get
+            {
+                var age = DateTime.Today.Year - BirthDate.Year;
+                if (BirthDate.Date > DateTime.Today.AddYears(-age)) age--;
+                return $"{age} лет";
+            }
+        }
     }
 }

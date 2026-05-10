@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BlazorAcademyTop.Models
 {
-    public class Discipline
+    [Table("Disciplines")]
+    public partial class Discipline
     {
         [Key]
         [Column("discipline_id")]
@@ -12,10 +14,7 @@ namespace BlazorAcademyTop.Models
         [Column("discipline_name")]
         public string? DisciplineName { get; set; }
 
-        [Column("number_of_lessons")]
-        public byte NumberOfLessons { get; set; }
-
-        public List<TeacherDisciplineRelation> TeacherDisciplineRelations { get; set; } = new();
-        public List<DisciplineDirectionRelation> DisciplineDirectionRelations { get; set; } = new();
+        public virtual ICollection<TeacherDisciplineRelation> TeacherDisciplineRelations { get; set; } = new List<TeacherDisciplineRelation>();
+        public virtual ICollection<DisciplineDirectionRelation> DisciplineDirectionRelations { get; set; } = new List<DisciplineDirectionRelation>();
     }
 }

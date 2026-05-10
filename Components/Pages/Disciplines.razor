@@ -1,88 +1,56 @@
 @page "/disciplines"
-@page "/disciplines/{DisciplineId:int}"
-@using BlazorAcademyTop.Data
+@rendermode InteractiveServer
 @using BlazorAcademyTop.Models
+@using BlazorAcademyTop.Data
 @using Microsoft.EntityFrameworkCore
-@inject AcademyContext Db
 
-<h1>Disciplines</h1>
+@inject AcademyContext Context
 
-@if (DisciplineId.HasValue)
-{
-    if (selectedDiscipline == null)
-    {
-        <p>Дисциплина не найдена.</p>
-    }
-    else
-    {
-        <div class="card p-3 mb-3">
-            <h4>@selectedDiscipline.DisciplineName</h4>
-            <p><b>Количество занятий:</b> @selectedDiscipline.NumberOfLessons</p>
-            <h5>Преподаватели, которые могут вести дисциплину:</h5>
-            @if (selectedDiscipline.TeacherDisciplineRelations.Count == 0)
-            {
-                <p>Преподаватели не назначены.</p>
-            }
-            else
-            {
-                <ul>
-                    @foreach (var item in selectedDiscipline.TeacherDisciplineRelations)
-                    {
-                        <li>@item.Teacher?.FullName</li>
-                    }
-                </ul>
-            }
-            <a class="btn btn-secondary" href="/disciplines">Назад</a>
-        </div>
-    }
-}
-else if (items == null)
-{
-    <p>Загрузка...</p>
-}
-else
-{
-    <table class="table table-striped table-bordered">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Discipline name</th>
-                <th>Number of lessons</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var d in items)
+<h3>Дисциплины</h3>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-light">
+        <tr>
+            <th>ID</th>
+            <th>Название предмета</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (disciplines != null)
+        {
+            @foreach (var d in disciplines)
             {
                 <tr>
                     <td>@d.DisciplineId</td>
                     <td>@d.DisciplineName</td>
-                    <td>@d.NumberOfLessons</td>
-                    <td><a class="btn btn-sm btn-outline-primary" href="/disciplines/@d.DisciplineId">Details</a></td>
                 </tr>
             }
-        </tbody>
-    </table>
-}
+        }
+    </tbody>
+</table>
+
+<div class="d-flex justify-content-between mt-3">
+    <button class="btn btn-primary" @onclick="PrevPage" disabled="@(currentPage == 1)">Назад</button>
+    <span>Страница @currentPage из @totalPages</span>
+    <button class="btn btn-primary" @onclick="NextPage" disabled="@(currentPage >= totalPages)">Вперед</button>
+</div>
 
 @code {
-    [Parameter] public int? DisciplineId { get; set; }
-    private List<Discipline>? items;
-    private Discipline? selectedDiscipline;
+    private List<Discipline>? disciplines;
+    private int currentPage = 1;
+    private int totalPages = 1;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
     {
-        if (DisciplineId.HasValue)
-        {
-            selectedDiscipline = await Db.Disciplines
-                .Include(d => d.TeacherDisciplineRelations)
-                .ThenInclude(r => r.Teacher)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(d => d.DisciplineId == DisciplineId.Value);
-        }
-        else
-        {
-            items = await Db.Disciplines.AsNoTracking().OrderBy(d => d.DisciplineName).ToListAsync();
-        }
+        var query = Context.Disciplines.AsQueryable();
+        totalPages = (int)Math.Ceiling(await query.CountAsync() / 10.0);
+        if (totalPages <= 0) totalPages = 1;
+        disciplines = await query.Skip((currentPage - 1) * 10).Take(10).ToListAsync();
+        StateHasChanged();
     }
+
+    private async Task PrevPage() { if (currentPage > 1) { currentPage--; await LoadData(); } }
+    private async Task NextPage() { if (currentPage < totalPages) { currentPage++; await LoadData(); } }
 }
